@@ -37,9 +37,8 @@ const HeroSection = () => {
       </p>
       <button
         onClick={() => navigate("/movies")}
-        className="flex items-center gap-1 px-6 py-3 text-sm 
-             bg-red-900 hover:bg-red-800 transition 
-             rounded-full font-medium text-white cursor-pointer"
+        className="flex items-center gap-1 px-6 py-3 text-sm bg-red-900 hover:bg-red-700 transition 
+        rounded-full font-medium text-white cursor-pointer"
       >
         Explore Movies
         <ArrowRight className="w-5 h-5" />

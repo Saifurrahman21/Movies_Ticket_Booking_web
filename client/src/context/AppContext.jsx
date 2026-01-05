@@ -4,66 +4,69 @@ import { useAuth, useUser } from "@clerk/clerk-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
-axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
+axios.defaults.baseURL =
+  import.meta.env.VITE_BASE_URL || "http://localhost:5000";
 
-export const AppContext = createContext();
+export const AppContext = createContext(null);
 
 export const AppProvider = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [shows, setShows] = useState([]);
   const [favoriteMovies, setFavoriteMovies] = useState([]);
 
-  const image_base_url = import.meta.env.VITE_TMDB_IMAGE_BASE_URL;
+  const image_base_url =
+    import.meta.env.VITE_TMDB_IMAGE_BASE_URL ||
+    "https://image.tmdb.org/t/p/w500";
 
   const { user } = useUser();
   const { getToken } = useAuth();
+
   const location = useLocation();
   const navigate = useNavigate();
 
   const fetchIsAdmin = async () => {
+    if (!user) return;
+
     try {
       const { data } = await axios.get("/api/admin/is-admin", {
         headers: { Authorization: `Bearer ${await getToken()}` },
       });
 
-      setIsAdmin(data.isAdmin);
+      setIsAdmin(Boolean(data?.isAdmin));
 
-      if (!data.isAdmin && location.pathname.startsWith("/admin")) {
+      if (!data?.isAdmin && location.pathname.startsWith("/admin")) {
         navigate("/");
         toast.error("You are not authorized to access admin dashboard");
       }
     } catch (error) {
-      console.error(error);
+      console.error("fetchIsAdmin error:", error);
     }
   };
 
   const fetchShows = async () => {
     try {
       const { data } = await axios.get("/api/show/all");
-
-      if (data.success) {
+      if (data?.success) {
         setShows(data.shows);
-      } else {
-        toast.error(data.message);
       }
     } catch (error) {
-      console.error(error);
+      console.error("fetchShows error:", error);
     }
   };
 
   const fetchFavoriteMovies = async () => {
+    if (!user) return;
+
     try {
       const { data } = await axios.get("/api/user/favorites", {
         headers: { Authorization: `Bearer ${await getToken()}` },
       });
 
-      if (data.success) {
+      if (data?.success) {
         setFavoriteMovies(data.movies);
-      } else {
-        toast.error(data.message);
       }
     } catch (error) {
-      console.error(error);
+      console.error("fetchFavoriteMovies error:", error);
     }
   };
 
@@ -78,20 +81,28 @@ export const AppProvider = ({ children }) => {
     }
   }, [user]);
 
-  const value = {
-    axios,
-    fetchIsAdmin,
-    user,
-    getToken,
-    navigate,
-    isAdmin,
-    shows,
-    favoriteMovies,
-    fetchFavoriteMovies,
-    image_base_url,
-  };
-
-  return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
+  return (
+    <AppContext.Provider
+      value={{
+        axios,
+        user,
+        getToken,
+        isAdmin,
+        shows,
+        favoriteMovies,
+        fetchFavoriteMovies,
+        image_base_url,
+      }}
+    >
+      {children}
+    </AppContext.Provider>
+  );
 };
 
-export const useAppContext = () => useContext(AppContext);
+export const useAppContext = () => {
+  const ctx = useContext(AppContext);
+  if (!ctx) {
+    throw new Error("useAppContext must be used inside AppProvider");
+  }
+  return ctx;
+};
